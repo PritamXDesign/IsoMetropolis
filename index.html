@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>IsoMetropolis - Isometric Web City Builder</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏙️</text></svg>">
+</head>
+<body>
+
+  <!-- Fullscreen Interactive Canvas Viewport -->
+  <div id="canvas-container">
+    <canvas id="city-canvas"></canvas>
+  </div>
+
+  <!-- Top HUD Bar -->
+  <header class="hud-top">
+    <!-- City Identity & Demographics -->
+    <div class="hud-group">
+      <div class="hud-card city-pill" id="hud-city-name" title="Click to rename city">
+        🏙️ <span>Sunny Bay</span> ✏️
+      </div>
+      <div class="hud-card" title="Simulation Calendar">
+        📅 <span id="hud-date">Jan 2026</span>
+      </div>
+      <div class="hud-card" title="Municipal Treasury">
+        💰 <span id="hud-funds" class="text-success">$25,000</span>
+      </div>
+      <div class="hud-card" title="Citizens Population">
+        👥 <span id="hud-pop">0</span>
+      </div>
+      <div class="hud-card" title="Citizen Happiness Approval">
+        😊 <span id="hud-happy">75%</span>
+      </div>
+      <!-- RCI Demand Meter -->
+      <div class="hud-card" title="RCI Demand (Residential / Commercial / Industrial)">
+        <div class="rci-meter">
+          <div class="rci-bar rci-r" id="demand-res" title="Residential Demand"></div>
+          <div class="rci-bar rci-c" id="demand-com" title="Commercial Demand"></div>
+          <div class="rci-bar rci-i" id="demand-ind" title="Industrial Demand"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls & Systems -->
+    <div class="hud-group">
+      <!-- Simulation Speed Controls -->
+      <div class="speed-group" title="Simulation Speed">
+        <button class="speed-btn" data-speed="0" title="Pause (Space)">⏸</button>
+        <button class="speed-btn active" data-speed="1" title="Normal 1x (1)">1x</button>
+        <button class="speed-btn" data-speed="2" title="Fast 2x (2)">2x</button>
+        <button class="speed-btn" data-speed="4" title="Ultra 4x (3)">4x</button>
+      </div>
+
+      <!-- Architectural Style Selector -->
+      <select id="select-style" class="hud-select" title="Active Architectural Style">
+        <option value="european">🏛️ European (Haussmann)</option>
+        <option value="modern" selected>🏙️ Metropolis Modern</option>
+        <option value="japanese">⛩️ Neo-Tokyo / Edo</option>
+        <option value="cyberpunk">🌆 Cyberpunk 2099</option>
+        <option value="medieval">🏰 Old World Medieval</option>
+      </select>
+
+      <!-- Heatmap Overlays -->
+      <select id="select-overlay" class="hud-select" title="Data Overlays">
+        <option value="normal">🗺️ Normal View</option>
+        <option value="power">⚡ Power Grid</option>
+        <option value="water">💧 Water Grid</option>
+        <option value="pollution">🏭 Pollution Smog</option>
+        <option value="landValue">🌱 Land Value</option>
+      </select>
+
+      <!-- Display Toggles -->
+      <button class="hud-btn active" id="btn-grid" title="Toggle Grid Lines (G)">#️⃣ Grid</button>
+      <button class="hud-btn" id="btn-daynight" title="Toggle Day / Night">☀️ Day</button>
+      <button class="hud-btn active" id="btn-audio" title="Toggle Sound FX">🔊 Audio</button>
+      <button class="hud-btn" id="btn-music" title="Toggle Lo-Fi Music">🎵 Lo-Fi</button>
+
+      <!-- Modals -->
+      <button class="hud-btn" id="btn-modal-budget">📊 Budget</button>
+      <button class="hud-btn" id="btn-modal-stats">📈 Stats</button>
+      <button class="hud-btn" id="btn-modal-presets">💾 Cities</button>
+      <button class="hud-btn" id="btn-modal-handbook">📖 Guide</button>
+    </div>
+  </header>
+
+  <!-- News Ticker -->
+  <div class="news-ticker" title="Click to view next headline">
+    <span class="news-badge">City News</span>
+    <span class="news-content" id="news-text">MAYOR WELCOMES NEW CITIZENS TO THE ISOMETRIC METROPOLIS!</span>
+  </div>
+
+  <!-- Bottom Tool Palette & Category Drawers -->
+  <nav class="hud-bottom">
+    <div class="tool-palette">
+      <!-- Category Tabs -->
+      <div class="tab-row">
+        <button class="tab-btn active" data-target="panel-roads">🛣️ Roads</button>
+        <button class="tab-btn" data-target="panel-zones">🏘️ Zones</button>
+        <button class="tab-btn" data-target="panel-utilities">⚡ Utilities</button>
+        <button class="tab-btn" data-target="panel-services">🚨 Services</button>
+        <button class="tab-btn" data-target="panel-parks">🌳 Parks</button>
+        <button class="tab-btn" data-target="panel-landmarks">🏛️ Landmarks</button>
+        <button class="tool-btn" data-tool="bulldoze" title="Demolish building or road (B)">🚜 Bulldoze <span class="cost-tag">$10</span></button>
+        <button class="tool-btn" data-tool="inspect" title="Inspect tile details (I)">🔍 Inspect</button>
+        <button class="tool-btn active" data-tool="select" title="Pan / Navigate">✋ Pan</button>
+      </div>
+
+      <!-- Category Placement Panels -->
+      <div class="palette-content">
+        <!-- Roads Panel -->
+        <div class="palette-panel active" id="panel-roads">
+          <button class="tool-btn" data-tool="road">🛣️ Paved Road <span class="cost-tag">$10</span></button>
+        </div>
+
+        <!-- Zones Panel -->
+        <div class="palette-panel" id="panel-zones">
+          <button class="tool-btn" data-tool="zone_res">🟢 Residential <span class="cost-tag">$25</span></button>
+          <button class="tool-btn" data-tool="zone_com">🔵 Commercial <span class="cost-tag">$35</span></button>
+          <button class="tool-btn" data-tool="zone_ind">🟡 Industrial <span class="cost-tag">$30</span></button>
+          <button class="tool-btn" data-tool="dezone">⚪ Clear Zone <span class="cost-tag">$5</span></button>
+        </div>
+
+        <!-- Utilities Panel -->
+        <div class="palette-panel" id="panel-utilities">
+          <button class="tool-btn" data-tool="wind_turbine">💨 Wind Turbine <span class="cost-tag">$300</span></button>
+          <button class="tool-btn" data-tool="solar_farm">☀️ Solar Array <span class="cost-tag">$750</span></button>
+          <button class="tool-btn" data-tool="coal_power">🏭 Coal Plant <span class="cost-tag">$1,500</span></button>
+          <button class="tool-btn" data-tool="water_tower">🗼 Water Tower <span class="cost-tag">$400</span></button>
+          <button class="tool-btn" data-tool="water_pump">🌊 River Pump <span class="cost-tag">$900</span></button>
+        </div>
+
+        <!-- Services Panel -->
+        <div class="palette-panel" id="panel-services">
+          <button class="tool-btn" data-tool="police">👮 Police Station <span class="cost-tag">$550</span></button>
+          <button class="tool-btn" data-tool="fire_dept">🚒 Fire Dept <span class="cost-tag">$550</span></button>
+          <button class="tool-btn" data-tool="clinic">🏥 Clinic <span class="cost-tag">$650</span></button>
+          <button class="tool-btn" data-tool="hospital">🏨 Hospital <span class="cost-tag">$1,800</span></button>
+          <button class="tool-btn" data-tool="school">🏫 School <span class="cost-tag">$500</span></button>
+          <button class="tool-btn" data-tool="university">🎓 University <span class="cost-tag">$2,200</span></button>
+        </div>
+
+        <!-- Parks & Recreation Panel -->
+        <div class="palette-panel" id="panel-parks">
+          <button class="tool-btn" data-tool="park_small">🌳 Local Park <span class="cost-tag">$120</span></button>
+          <button class="tool-btn" data-tool="park_fountain">⛲ Fountain Plaza <span class="cost-tag">$280</span></button>
+          <button class="tool-btn" data-tool="zen_garden">🌸 Zen Garden <span class="cost-tag">$320</span></button>
+          <button class="tool-btn" data-tool="cyber_plaza">💠 Cyber Plaza <span class="cost-tag">$380</span></button>
+          <button class="tool-btn" data-tool="stadium">🏟️ Stadium <span class="cost-tag">$2,800</span></button>
+        </div>
+
+        <!-- Landmarks Panel -->
+        <div class="palette-panel" id="panel-landmarks">
+          <button class="tool-btn" data-tool="city_hall">🏛️ City Hall <span class="cost-tag">$1,200</span></button>
+          <button class="tool-btn" data-tool="clock_tower">🕰️ Clock Tower <span class="cost-tag">$850</span></button>
+          <button class="tool-btn" data-tool="monolith">🗼 Apex Sky Spire <span class="cost-tag">$3,500</span></button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mini-Map Radar -->
+  <div class="minimap-container">
+    <div class="minimap-header">
+      <span>Radar View</span>
+      <span>36x36</span>
+    </div>
+    <canvas id="minimap-canvas" width="144" height="144"></canvas>
+  </div>
+
+  <!-- Native Accessible Dialogs -->
+
+  <!-- 1. Budget & Taxes Modal -->
+  <dialog id="dialog-budget">
+    <div class="dialog-header">
+      <h2>📊 Municipal Budget & Taxation</h2>
+      <button class="dialog-close-btn" aria-label="Close dialog">&times;</button>
+    </div>
+    <div id="budget-details"></div>
+  </dialog>
+
+  <!-- 2. City Statistics Modal -->
+  <dialog id="dialog-stats">
+    <div class="dialog-header">
+      <h2>📈 City Statistics & Demographics</h2>
+      <button class="dialog-close-btn" aria-label="Close dialog">&times;</button>
+    </div>
+    <div id="stats-details"></div>
+  </dialog>
+
+  <!-- 3. Tile Inspector Modal -->
+  <dialog id="dialog-inspect">
+    <div class="dialog-header">
+      <h2>🔍 Tile Inspector</h2>
+      <button class="dialog-close-btn" aria-label="Close dialog">&times;</button>
+    </div>
+    <div id="inspect-details"></div>
+  </dialog>
+
+  <!-- 4. Preset Cities & Save/Load Modal -->
+  <dialog id="dialog-presets">
+    <div class="dialog-header">
+      <h2>💾 Cities & Presets</h2>
+      <button class="dialog-close-btn" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="presets-grid">
+      <div class="preset-card">
+        <h4>🏙️ Sunny Bay Metropolis</h4>
+        <p>A flourishing coastal metropolis featuring distinct residential suburbs, downtown commercial high-rises, and industrial sector.</p>
+        <button class="preset-btn" data-preset="sunny_bay">Load City</button>
+      </div>
+      <div class="preset-card">
+        <h4>🌆 Neo Tokyo 2099</h4>
+        <p>Dense cyberpunk towers, glowing holographic plazas, solar energy grid, and futuristic sky spires.</p>
+        <button class="preset-btn" data-preset="neo_tokyo">Load City</button>
+      </div>
+      <div class="preset-card">
+        <h4>🏛️ Old Haussmann River</h4>
+        <p>Historic Parisian architecture, classic slate mansard roofs, public fountains, clock towers, and scenic river canals.</p>
+        <button class="preset-btn" data-preset="old_haussmann">Load City</button>
+      </div>
+      <div class="preset-card">
+        <h4>🌿 Blank Canvas</h4>
+        <p>A virgin landscape with a natural winding river and sandy beaches. Build your own metropolis from scratch!</p>
+        <button class="preset-btn" data-preset="blank_canvas">Start Fresh</button>
+      </div>
+    </div>
+    <div class="save-load-actions">
+      <button class="hud-btn" id="btn-save-local">💾 Save Game</button>
+      <button class="hud-btn" id="btn-load-local">📂 Load Saved Game</button>
+      <button class="hud-btn" id="btn-export-json">⬇️ Export JSON</button>
+      <label class="hud-btn" style="cursor: pointer;">
+        ⬆️ Import JSON
+        <input type="file" id="file-import-json" accept=".json" style="display: none;">
+      </label>
+    </div>
+  </dialog>
+
+  <!-- 5. Mayor's Handbook & Guide Modal -->
+  <dialog id="dialog-handbook">
+    <div class="dialog-header">
+      <h2>📖 Mayor's Handbook & Controls</h2>
+      <button class="dialog-close-btn" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="handbook-content">
+      <div class="handbook-section">
+        <h4>🎮 Camera Controls</h4>
+        <p>• <strong>Pan:</strong> Right-Click Drag, Middle-Click Drag, or Left-Click Drag with the "Pan" tool. You can also use <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrow keys.</p>
+        <p>• <strong>Zoom:</strong> Mouse Scroll Wheel or pinch-to-zoom on touch devices.</p>
+        <p>• <strong>Mini-Map:</strong> Click anywhere on the bottom-right radar to instantly center the camera.</p>
+      </div>
+      <div class="handbook-section">
+        <h4>🏗️ City Building Core Rules</h4>
+        <p>1. <strong>Road Networks:</strong> Zones must have road access to develop. Roads autotile into straightaways, corners, T-junctions, and 4-way crossings. Building roads over water creates suspension bridges!</p>
+        <p>2. <strong>Power & Water:</strong> Zones require both electricity (wind, solar, coal) and water (water tower, river pump). Utilities conduct through roads and adjacent structures.</p>
+        <p>3. <strong>RCI Balance:</strong> Keep Residential, Commercial, and Industrial zones balanced to avoid unemployment or goods shortages.</p>
+        <p>4. <strong>Public Services:</strong> Build Police Stations, Fire Departments, Clinics, and Schools to raise land value and prevent disasters.</p>
+        <p>5. <strong>Architectural Styles:</strong> IsoMetropolis lets you choose and mix styles freely! Switch between European Haussmann, Modern Metropolis, Neo-Tokyo, Cyberpunk, and Medieval anytime.</p>
+      </div>
+      <div class="handbook-section">
+        <h4>⌨️ Hotkeys</h4>
+        <div class="hotkey-list">
+          <div class="hotkey-item"><kbd>Space</kbd> Pause / Resume</div>
+          <div class="hotkey-item"><kbd>1</kbd> - <kbd>3</kbd> Game Speed</div>
+          <div class="hotkey-item"><kbd>R</kbd> Paved Road</div>
+          <div class="hotkey-item"><kbd>B</kbd> Bulldozer</div>
+          <div class="hotkey-item"><kbd>I</kbd> Inspect Tile</div>
+          <div class="hotkey-item"><kbd>G</kbd> Toggle Grid Lines</div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modular Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/traffic.js"></script>
+  <script src="js/presets.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
